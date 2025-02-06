@@ -10,6 +10,7 @@
 HINSTANCE hInst;                                // instance actuelle
 WCHAR szTitle[MAX_LOADSTRING];                  // Texte de la barre de titre
 WCHAR szWindowClass[MAX_LOADSTRING];            // nom de la classe de fenêtre principale
+HWND hEdit;
 
 // Déclarations anticipées des fonctions incluses dans ce module de code :
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -95,20 +96,62 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-   hInst = hInstance; // Stocke le handle d'instance dans la variable globale
+    hInst = hInstance; // Stocke le handle d'instance dans la variable globale
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
-   if (!hWnd)
-   {
-      return FALSE;
-   }
+    if (!hWnd)
+    {
+        return FALSE;
+    }
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
+    // Obtenez les dimensions de la fenêtre principale
+    RECT rect;
+    GetClientRect(hWnd, &rect);
+    int windowWidth = rect.right - rect.left;
+    int windowHeight = rect.bottom - rect.top;
 
-   return TRUE;
+    // Calculez la position pour centrer le champ de texte
+    int editWidth = 200;
+    int editHeight = 25;
+    int editX = (windowWidth - editWidth) / 2;
+    int editY = (windowHeight - editHeight) / 2;
+
+    // Crée le contrôle d'édition
+    hEdit = CreateWindowEx(
+        0, L"EDIT",   // Nom de la classe
+        NULL,         // Texte initial
+        WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT, // Styles de fenêtre
+        editX, editY, editWidth, editHeight, // Position et taille
+        hWnd,         // Fenêtre parent
+        NULL,         // Pas de menu
+        hInstance,    // Instance de l'application
+        NULL          // Paramètres supplémentaires
+    );
+
+    // Calculez la position pour le bouton
+    int buttonWidth = 100;
+    int buttonHeight = 30;
+    int buttonX = (windowWidth - buttonWidth) / 2;
+    int buttonY = windowHeight - buttonHeight - 10;
+
+    // Crée le bouton
+    HWND hButton = CreateWindowEx(
+        0, L"BUTTON", // Nom de la classe
+        L"OK",        // Texte du bouton
+        WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, // Styles de fenêtre
+        buttonX, buttonY, buttonWidth, buttonHeight, // Position et taille
+        hWnd,         // Fenêtre parent
+        (HMENU)1,     // Identifiant du bouton
+        hInstance,    // Instance de l'application
+        NULL          // Paramètres supplémentaires
+    );
+
+    ShowWindow(hWnd, nCmdShow);
+    UpdateWindow(hWnd);
+
+    return TRUE;
 }
 
 //
@@ -126,30 +169,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_COMMAND:
+    {
+        int wmId = LOWORD(wParam);
+        // Analyse les sélections de menu :
+        switch (wmId)
         {
-            int wmId = LOWORD(wParam);
-            // Analyse les sélections de menu :
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
-            }
+        case IDM_ABOUT:
+            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+            break;
+        case IDM_EXIT:
+            DestroyWindow(hWnd);
+            break;
+        case 1: // Identifiant du bouton
+        {
+            // Récupérez le texte du champ de texte
+            wchar_t text[256];
+            GetWindowText(hEdit, text, 256);
+            MessageBox(hWnd, text, L"Texte du champ de texte", MB_OK);
         }
         break;
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
+        }
+    }
+    break;
     case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: Ajoutez ici le code de dessin qui utilise hdc...
-            EndPaint(hWnd, &ps);
-        }
-        break;
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+        // TODO: Ajoutez ici le code de dessin qui utilise hdc...
+        EndPaint(hWnd, &ps);
+    }
+    break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
